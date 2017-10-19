@@ -7,10 +7,13 @@ using Discord;
 using Discord.WebSocket;
 using Discord.Net.Providers.WS4Net;
 using Discord.Commands;
+using Newtonsoft.Json;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 using System.Threading;
 using System.IO;
+using System.Reflection.Emit;
+using Newtonsoft.Json.Linq;
 
 namespace AnimeBot
 {
@@ -21,13 +24,15 @@ namespace AnimeBot
             new Program().MainAsync().GetAwaiter().GetResult();
         }
 
-        public static bool nya = bool.Parse(File.ReadAllText("../nya.txt"));
-        public static string game = File.ReadAllText("../game.txt");
+        public static bool nya = bool.Parse(System.IO.File.ReadAllText("../nya.txt"));
+        public static string game = System.IO.File.ReadAllText("../game.txt");
 
         public static DiscordSocketClient bot;
+        public static JsonSerializer JCon = new JsonSerializer();
 
         private readonly IServiceCollection map = new ServiceCollection();
         private readonly CommandService commands = new CommandService();
+
 
         private Program()
         {
@@ -51,14 +56,19 @@ namespace AnimeBot
             return Task.CompletedTask;
         }
 
-        string token = "MzY2NzgyNDIxMTE2NjQ5NTAy.DLx47g.B-V9aq2Gbq0KIYOGQtp9EnGRejE";
-        //real: MzY2MzgwNTQwNjY2MDUyNjA5.DLsDZw.1M90WFJxJVrFdChsRbb8ezj37VM
-        //test: MzY2NzgyNDIxMTE2NjQ5NTAy.DLx47g.B-V9aq2Gbq0KIYOGQtp9EnGRejE
 
 
         private async Task MainAsync()
         {
-            await initCommands();
+            string token;
+            using (StreamReader sr = new StreamReader("../config.json"))
+            using (JsonReader jr = new JsonTextReader(sr))
+            {
+               var jsonObject = JCon.Deserialize(jr);
+               var deserialized = (JObject)jsonObject;
+               token = deserialized.SelectToken("['Token']").ToString();
+            }
+                await initCommands();
 
             await bot.LoginAsync(TokenType.Bot, token);
 
@@ -128,7 +138,7 @@ namespace AnimeBot
             //automated responses
             if (e.Content.ToLower().Contains("nya"))
             {
-                if (nya == true)
+                if (nya)
                 {
                     if (timers.nyaaTime <= 0)
                     {
